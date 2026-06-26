@@ -16,7 +16,7 @@ public class MatchEngineService {
         double skillScore = skillScore(resumeProfile.skills(), jobProfile.requiredSkills(), jobProfile.preferredSkills());
         double experienceScore = experienceScore(resumeProfile.workExperience(), jobProfile.minYears());
         double educationScore = educationScore(resumeProfile);
-        double projectScore = projectScore(resumeProfile, resume.rawText(), jobProfile.requiredSkills(), jobProfile.preferredSkills());
+        double projectScore = caseRelevanceScore(resumeProfile, resume.rawText(), jobProfile);
         double salaryScore = salaryScore(resumeProfile.expectedSalaryMin(), resumeProfile.expectedSalaryMax(), jobProfile.salaryMin(), jobProfile.salaryMax());
         double semanticScore = cosineScore(resume.embedding(), job.embedding());
         double totalScore = skillScore * 0.35
@@ -81,36 +81,57 @@ public class MatchEngineService {
                 .orElse(50);
     }
 
-    private double projectScore(ResumeProfile profile, String rawText, List<String> requiredSkills, List<String> preferredSkills) {
-        ProjectText projectText = projectText(profile, rawText);
-        if (projectText.text().isBlank()) {
+    private double caseRelevanceScore(ResumeProfile profile, String rawText, JobProfile jobProfile) {
+        CaseText caseText = caseText(profile, rawText);
+        if (caseText.text().isBlank()) {
             return 40;
         }
-        Set<String> required = normalize(requiredSkills);
-        Set<String> preferred = normalize(preferredSkills);
-        double requiredCoverage = required.isEmpty() ? 0.45 : keywordCoverage(projectText.text(), required);
-        double preferredCoverage = preferred.isEmpty() ? 0.35 : keywordCoverage(projectText.text(), preferred);
-        double projectCompleteness = projectText.hasStructuredProject() ? structuredProjectCompleteness(profile.projectExperience()) : 0.35;
-        double responsibilityCoverage = responsibilityCoverage(projectText.text());
-        double complexityScore = complexityScore(projectText.text());
-        double score = requiredCoverage * 35
-                + preferredCoverage * 15
-                + projectCompleteness * 20
-                + responsibilityCoverage * 15
-                + complexityScore * 15;
-        if (!projectText.hasStructuredProject()) {
+        double responsibilityCoverage = keywordCoverage(caseText.text(), normalize(jobProfile.responsibilities()));
+        double capabilityCoverage = keywordCoverage(caseText.text(), merge(normalize(jobProfile.requiredCapabilities()), normalize(jobProfile.requiredSkills())));
+        double scenarioCoverage = keywordCoverage(caseText.text(), merge(normalize(jobProfile.businessScenarios()), normalize(jobProfile.industries())));
+        double achievementCoverage = keywordCoverage(caseText.text(), normalize(jobProfile.achievementSignals()));
+        double completeness = caseText.hasStructuredCase() ? structuredCaseCompleteness(profile) : 0.35;
+        double score = responsibilityCoverage * 30
+                + capabilityCoverage * 25
+                + scenarioCoverage * 15
+                + achievementCoverage * 15
+                + completeness * 15;
+        if (!caseText.hasStructuredCase()) {
             return Math.min(clamp(score), 65);
         }
-        if (!projectText.hasResponsibilitySignal()) {
+        if (responsibilityCoverage < 0.2 && capabilityCoverage < 0.2) {
+            return Math.min(clamp(score), 75);
+        }
+        if (scenarioCoverage == 0 && achievementCoverage == 0) {
             return Math.min(clamp(score), 85);
         }
         return clamp(score);
     }
 
-    private ProjectText projectText(ResumeProfile profile, String rawText) {
+    private CaseText caseText(ResumeProfile profile, String rawText) {
         StringBuilder builder = new StringBuilder();
-        boolean hasStructuredProject = profile.projectExperience() != null && !profile.projectExperience().isEmpty();
-        if (profile.projectExperience() != null) {
+        boolean hasStructuredCase = false;
+        if (profile.caseExperience() != null && !profile.caseExperience().isEmpty()) {
+            hasStructuredCase = true;
+            for (CaseExperience item : profile.caseExperience()) {
+                builder.append(' ')
+                        .append(item.name() == null ? "" : item.name())
+                        .append(' ')
+                        .append(item.role() == null ? "" : item.role())
+                        .append(' ')
+                        .append(item.description() == null ? "" : item.description())
+                        .append(' ')
+                        .append(String.join(" ", item.actions() == null ? List.of() : item.actions()))
+                        .append(' ')
+                        .append(String.join(" ", item.results() == null ? List.of() : item.results()))
+                        .append(' ')
+                        .append(String.join(" ", item.capabilities() == null ? List.of() : item.capabilities()))
+                        .append(' ')
+                        .append(String.join(" ", item.businessScenarios() == null ? List.of() : item.businessScenarios()));
+            }
+        }
+        if (profile.projectExperience() != null && !profile.projectExperience().isEmpty()) {
+            hasStructuredCase = true;
             for (ProjectExperience project : profile.projectExperience()) {
                 builder.append(' ')
                         .append(project.name() == null ? "" : project.name())
@@ -130,13 +151,47 @@ public class MatchEngineService {
                         .append(String.join(" ", experience.skills() == null ? List.of() : experience.skills()));
             }
         }
-        builder.append(' ').append(String.join(" ", profile.skills() == null ? List.of() : profile.skills()));
-        boolean rawTextFallback = rawText != null && containsAny(rawText.toLowerCase(Locale.ROOT), List.of("项目经历", "项目描述", "个人项目", "开源项目"));
-        if (rawTextFallback) {
+        builder.append(' ').append(String.join(" ", profile.skills() == null ? List.of() : profile.skills()))
+                .append(' ').append(String.join(" ", profile.capabilities() == null ? List.of() : profile.capabilities()))
+                .append(' ').append(String.join(" ", profile.businessScenarios() == null ? List.of() : profile.businessScenarios()))
+                .append(' ').append(String.join(" ", profile.achievements() == null ? List.of() : profile.achievements()));
+        if (rawText != null && containsAny(rawText.toLowerCase(Locale.ROOT), List.of("项目经历", "项目描述", "个人项目", "开源项目", "案例", "作品", "业绩", "成果"))) {
             builder.append(' ').append(rawText);
         }
-        String text = builder.toString().toLowerCase(Locale.ROOT);
-        return new ProjectText(text, hasStructuredProject, containsAny(text, responsibilityKeywords()));
+        return new CaseText(builder.toString().toLowerCase(Locale.ROOT), hasStructuredCase);
+    }
+
+    private double structuredCaseCompleteness(ResumeProfile profile) {
+        double caseScore = structuredCaseExperienceCompleteness(profile.caseExperience());
+        double projectScore = structuredProjectCompleteness(profile.projectExperience());
+        return Math.max(caseScore, projectScore);
+    }
+
+    private double structuredCaseExperienceCompleteness(List<CaseExperience> cases) {
+        if (cases == null || cases.isEmpty()) {
+            return 0.35;
+        }
+        double total = 0;
+        for (CaseExperience item : cases) {
+            double score = 0.2;
+            if (item.name() != null && !item.name().isBlank()) {
+                score += 0.15;
+            }
+            if (item.description() != null && item.description().length() >= 30) {
+                score += 0.2;
+            }
+            if (item.actions() != null && !item.actions().isEmpty()) {
+                score += 0.2;
+            }
+            if (item.results() != null && !item.results().isEmpty()) {
+                score += 0.15;
+            }
+            if (item.capabilities() != null && !item.capabilities().isEmpty()) {
+                score += 0.1;
+            }
+            total += Math.min(score, 1);
+        }
+        return Math.min(0.9, total / cases.size());
     }
 
     private double structuredProjectCompleteness(List<ProjectExperience> projects) {
@@ -163,19 +218,7 @@ public class MatchEngineService {
         return Math.min(0.9, total / projects.size());
     }
 
-    private double responsibilityCoverage(String text) {
-        return keywordCoverage(text, new HashSet<>(responsibilityKeywords())) / 100.0;
-    }
-
-    private double complexityScore(String text) {
-        return keywordCoverage(text, new HashSet<>(List.of("架构", "设计", "实现", "优化", "异步", "并发", "检索", "向量", "权限", "缓存", "消息队列", "状态机", "高可用", "性能"))) / 100.0;
-    }
-
-    private List<String> responsibilityKeywords() {
-        return List.of("负责", "设计", "实现", "开发", "搭建", "优化", "落地", "接入", "对接", "重构", "维护");
-    }
-
-    private record ProjectText(String text, boolean hasStructuredProject, boolean hasResponsibilitySignal) {
+    private record CaseText(String text, boolean hasStructuredCase) {
     }
 
     private double keywordCoverage(String text, Set<String> keywords) {
@@ -183,7 +226,13 @@ public class MatchEngineService {
             return 0;
         }
         long hits = keywords.stream().filter(text::contains).count();
-        return hits * 100.0 / keywords.size();
+        return hits * 1.0 / keywords.size();
+    }
+
+    private Set<String> merge(Set<String> left, Set<String> right) {
+        Set<String> result = new HashSet<>(left);
+        result.addAll(right);
+        return result;
     }
 
     private boolean containsAny(String text, List<String> keywords) {

@@ -76,7 +76,11 @@ public final class JdbcMapping {
                 profile.education() == null ? List.of() : profile.education(),
                 profile.workExperience() == null ? List.of() : profile.workExperience(),
                 profile.projectExperience() == null ? List.of() : profile.projectExperience(),
+                profile.caseExperience() == null ? List.of() : profile.caseExperience(),
                 profile.skills() == null ? List.of() : profile.skills(),
+                profile.capabilities() == null ? List.of() : profile.capabilities(),
+                profile.businessScenarios() == null ? List.of() : profile.businessScenarios(),
+                profile.achievements() == null ? List.of() : profile.achievements(),
                 profile.expectedSalaryMin(),
                 profile.expectedSalaryMax(),
                 profile.summary() == null ? "" : profile.summary()
@@ -86,8 +90,13 @@ public final class JdbcMapping {
     public static JobProfile normalize(JobProfile profile, String fallbackTitle) {
         return new JobProfile(
                 profile.title() == null || profile.title().isBlank() ? fallbackTitle : profile.title(),
+                profile.roleType() == null ? "" : profile.roleType(),
                 profile.requiredSkills() == null ? List.of() : profile.requiredSkills(),
                 profile.preferredSkills() == null ? List.of() : profile.preferredSkills(),
+                profile.requiredCapabilities() == null ? List.of() : profile.requiredCapabilities(),
+                profile.responsibilities() == null ? List.of() : profile.responsibilities(),
+                profile.businessScenarios() == null ? List.of() : profile.businessScenarios(),
+                profile.achievementSignals() == null ? List.of() : profile.achievementSignals(),
                 profile.industries() == null ? List.of() : profile.industries(),
                 profile.minYears(),
                 profile.salaryMin(),
