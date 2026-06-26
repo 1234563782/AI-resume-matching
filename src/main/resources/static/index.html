@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI 招聘匹配系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+        }
+
+        button, input, textarea {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 28px;
+            background: #ffffff;
+            border-bottom: 1px solid #e6eaf0;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .brand-subtitle {
+            margin: 5px 0 0;
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .status-pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #eef6ff;
+            color: #1d4ed8;
+            font-size: 13px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 420px minmax(0, 1fr);
+            gap: 18px;
+            padding: 18px 28px 28px;
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid #e6eaf0;
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        .panel + .panel {
+            margin-top: 16px;
+        }
+
+        .panel-title {
+            margin: 0 0 14px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .field-label {
+            display: block;
+            margin: 12px 0 6px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .input, .textarea {
+            width: 100%;
+            border: 1px solid #cfd7e3;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #172033;
+            outline: none;
+        }
+
+        .input {
+            height: 40px;
+            padding: 0 11px;
+        }
+
+        .textarea {
+            min-height: 172px;
+            padding: 10px 11px;
+            resize: vertical;
+            line-height: 1.55;
+        }
+
+        .input:focus, .textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .primary-button, .secondary-button {
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .primary-button {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .primary-button:disabled {
+            background: #98a2b3;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            border: 1px solid #cfd7e3;
+            background: #ffffff;
+            color: #1f2937;
+        }
+
+        .message {
+            margin: 10px 0 0;
+            color: #475467;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.error {
+            color: #b42318;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            border: 1px solid #e6eaf0;
+            border-radius: 8px;
+            padding: 14px;
+            background: #fbfcfe;
+        }
+
+        .metric-label {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .metric-value {
+            margin-top: 6px;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid #e6eaf0;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e6eaf0;
+            text-align: left;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475467;
+            font-weight: 700;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .score {
+            font-size: 20px;
+            font-weight: 800;
+            color: #2563eb;
+        }
+
+        .radar-box {
+            border: 1px solid #e6eaf0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        #radarChart {
+            height: 360px;
+        }
+
+        .empty-state {
+            display: grid;
+            place-items: center;
+            min-height: 260px;
+            border: 1px dashed #cfd7e3;
+            border-radius: 8px;
+            color: #667085;
+            text-align: center;
+        }
+
+        .inline-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 1100px) {
+            .workspace, .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .workspace {
+                padding: 16px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="app" class="app-shell">
+    <header class="topbar">
+        <div>
+            <h1 class="brand-title">AI 招聘匹配系统</h1>
+            <p class="brand-subtitle">简历解析、JD 建模、匹配排序和雷达图评估</p>
+        </div>
+        <div class="status-pill">当前 JD：{{ currentJobId ? `#${currentJobId}` : '未创建' }}</div>
+    </header>
+
+    <main class="workspace">
+        <aside>
+            <section class="panel">
+                <h2 class="panel-title">创建岗位 JD</h2>
+                <label class="field-label" for="jobTitle">岗位名称</label>
+                <input id="jobTitle" v-model.trim="jobForm.title" class="input" placeholder="例如：Java 后端工程师">
+
+                <label class="field-label" for="jdText">JD 内容</label>
+                <textarea id="jdText" v-model.trim="jobForm.jdText" class="textarea" placeholder="粘贴岗位职责、必备技能、经验年限和薪资范围"></textarea>
+
+                <button class="primary-button" :disabled="loading.job || !canCreateJob" @click="createJob">
+                    {{ loading.job ? '创建中...' : '创建 JD' }}
+                </button>
+                <p class="message" :class="{ error: messages.jobError }">{{ messages.jobError || messages.job }}</p>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">上传候选人简历</h2>
+                <label class="field-label" for="resumeFile">简历文件</label>
+                <input id="resumeFile" class="input" type="file" accept=".pdf,.doc,.docx,.txt,image/*" @change="onFileChange">
+
+                <button class="primary-button" :disabled="loading.resume || !resumeFile" @click="uploadResume">
+                    {{ loading.resume ? '解析中...' : '上传并解析' }}
+                </button>
+                <p class="message" :class="{ error: messages.resumeError }">{{ messages.resumeError || messages.resume }}</p>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">推荐排序</h2>
+                <button class="primary-button" :disabled="loading.match || !currentJobId" @click="recommend">
+                    {{ loading.match ? '计算中...' : '生成候选人推荐' }}
+                </button>
+                <div class="inline-actions">
+                    <button class="secondary-button" @click="resetResults">清空结果</button>
+                    <button class="secondary-button" :disabled="!selectedResult" @click="drawRadar(selectedResult)">刷新雷达图</button>
+                </div>
+                <p class="message" :class="{ error: messages.matchError }">{{ messages.matchError || messages.match }}</p>
+            </section>
+        </aside>
+
+        <section class="panel">
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-label">候选人数</div>
+                    <div class="metric-value">{{ results.length }}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">最高匹配分</div>
+                    <div class="metric-value">{{ topScore }}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">已解析简历</div>
+                    <div class="metric-value">{{ uploadedResumeCount }}</div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div v-if="results.length" class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>简历 ID</th>
+                            <th>总分</th>
+                            <th>技能</th>
+                            <th>经验</th>
+                            <th>项目</th>
+                            <th>匹配原因</th>
+                            <th>短板</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr v-for="(item, index) in results" :key="`${item.resumeId}-${item.jobId}`" @click="selectResult(item)">
+                            <td>{{ index + 1 }}</td>
+                            <td>#{{ item.resumeId }}</td>
+                            <td><span class="score">{{ item.totalScore }}</span></td>
+                            <td>{{ item.skillScore }}</td>
+                            <td>{{ item.experienceScore }}</td>
+                            <td>{{ item.projectScore }}</td>
+                            <td>{{ item.matchReason }}</td>
+                            <td>{{ item.weaknessReason }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-else class="empty-state">
+                    <div>
+                        <strong>暂无匹配结果</strong>
+                        <p>创建 JD、上传简历后生成推荐排序。</p>
+                    </div>
+                </div>
+
+                <div class="radar-box">
+                    <h2 class="panel-title">匹配雷达图</h2>
+                    <div id="radarChart"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const {createApp, nextTick} = Vue;
+
+    createApp({
+        data() {
+            return {
+                jobForm: {
+                    title: 'Java 后端工程师',
+                    jdText: '负责 Java 后端服务开发，要求熟悉 Spring Boot、MySQL、Redis，有 3 年以上业务系统开发经验。'
+                },
+                currentJobId: null,
+                resumeFile: null,
+                uploadedResumeCount: 0,
+                results: [],
+                selectedResult: null,
+                chart: null,
+                loading: {
+                    job: false,
+                    resume: false,
+                    match: false
+                },
+                messages: {
+                    job: '',
+                    resume: '',
+                    match: '',
+                    jobError: '',
+                    resumeError: '',
+                    matchError: ''
+                }
+            };
+        },
+        computed: {
+            canCreateJob() {
+                return this.jobForm.title.length > 0 && this.jobForm.jdText.length > 0;
+            },
+            topScore() {
+                return this.results.length ? this.results[0].totalScore : '-';
+            }
+        },
+        mounted() {
+            window.addEventListener('resize', this.resizeChart);
+        },
+        beforeUnmount() {
+            window.removeEventListener('resize', this.resizeChart);
+            if (this.chart) {
+                this.chart.dispose();
+            }
+        },
+        methods: {
+            async createJob() {
+                this.loading.job = true;
+                this.messages.jobError = '';
+                this.messages.job = '';
+                try {
+                    const data = await this.request('/api/jobs', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(this.jobForm)
+                    });
+                    this.currentJobId = data.id;
+                    this.results = [];
+                    this.selectedResult = null;
+                    this.messages.job = `JD 创建成功，岗位 ID：#${data.id}`;
+                } catch (error) {
+                    this.messages.jobError = error.message;
+                } finally {
+                    this.loading.job = false;
+                }
+            },
+            onFileChange(event) {
+                this.resumeFile = event.target.files[0] || null;
+                this.messages.resume = this.resumeFile ? `已选择：${this.resumeFile.name}` : '';
+                this.messages.resumeError = '';
+            },
+            async uploadResume() {
+                this.loading.resume = true;
+                this.messages.resumeError = '';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', this.resumeFile);
+                    const data = await this.request('/api/resumes', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    this.uploadedResumeCount += 1;
+                    const candidateName = data.profile && data.profile.name ? data.profile.name : '未知候选人';
+                    this.messages.resume = `简历解析成功，简历 ID：#${data.id}，候选人：${candidateName}`;
+                } catch (error) {
+                    this.messages.resumeError = error.message;
+                } finally {
+                    this.loading.resume = false;
+                }
+            },
+            async recommend() {
+                this.loading.match = true;
+                this.messages.matchError = '';
+                this.messages.match = '';
+                try {
+                    const data = await this.request(`/api/matches/jobs/${this.currentJobId}/recommendations`);
+                    this.results = data;
+                    this.selectedResult = data[0] || null;
+                    this.messages.match = data.length ? `已生成 ${data.length} 条推荐结果` : '当前没有可推荐的简历';
+                    await nextTick();
+                    if (this.selectedResult) {
+                        this.drawRadar(this.selectedResult);
+                    }
+                } catch (error) {
+                    this.messages.matchError = error.message;
+                } finally {
+                    this.loading.match = false;
+                }
+            },
+            selectResult(result) {
+                this.selectedResult = result;
+                this.drawRadar(result);
+            },
+            resetResults() {
+                this.results = [];
+                this.selectedResult = null;
+                this.messages.match = '';
+                if (this.chart) {
+                    this.chart.clear();
+                }
+            },
+            drawRadar(result) {
+                const element = document.getElementById('radarChart');
+                if (!element || !result) {
+                    return;
+                }
+                if (!this.chart) {
+                    this.chart = echarts.init(element);
+                }
+                this.chart.setOption({
+                    tooltip: {},
+                    radar: {
+                        radius: '66%',
+                        indicator: [
+                            {name: '技能', max: 100},
+                            {name: '经验', max: 100},
+                            {name: '教育', max: 100},
+                            {name: '项目', max: 100},
+                            {name: '薪资', max: 100},
+                            {name: '语义', max: 100}
+                        ]
+                    },
+                    series: [{
+                        type: 'radar',
+                        areaStyle: {opacity: 0.18},
+                        lineStyle: {width: 2},
+                        data: [{
+                            name: `简历 #${result.resumeId}`,
+                            value: [
+                                result.radar.skill,
+                                result.radar.experience,
+                                result.radar.education,
+                                result.radar.project,
+                                result.radar.salary,
+                                result.radar.semantic
+                            ]
+                        }]
+                    }]
+                });
+            },
+            resizeChart() {
+                if (this.chart) {
+                    this.chart.resize();
+                }
+            },
+            async request(url, options = {}) {
+                const response = await fetch(url, options);
+                const contentType = response.headers.get('content-type') || '';
+                const body = contentType.includes('application/json') ? await response.json() : await response.text();
+                if (!response.ok) {
+                    throw new Error(typeof body === 'string' ? body : body.message || '请求失败');
+                }
+                return body;
+            }
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

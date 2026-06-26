@@ -1,0 +1,59 @@
+{
+  "groups": [
+    {
+      "name": "app",
+      "type": "com.example.airecruitment.config.AppProperties",
+      "sourceType": "com.example.airecruitment.config.AppProperties"
+    },
+    {
+      "name": "app.ai",
+      "type": "com.example.airecruitment.config.AppProperties$Ai",
+      "sourceType": "com.example.airecruitment.config.AppProperties",
+      "sourceMethod": "getAi()"
+    },
+    {
+      "name": "app.ocr",
+      "type": "com.example.airecruitment.config.AppProperties$Ocr",
+      "sourceType": "com.example.airecruitment.config.AppProperties",
+      "sourceMethod": "getOcr()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "app.ai.chat-model",
+      "type": "java.lang.String",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ai"
+    },
+    {
+      "name": "app.ai.dash-scope-api-key",
+      "type": "java.lang.String",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ai"
+    },
+    {
+      "name": "app.ai.embedding-dimension",
+      "type": "java.lang.Integer",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ai"
+    },
+    {
+      "name": "app.ai.embedding-model",
+      "type": "java.lang.String",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ai"
+    },
+    {
+      "name": "app.ocr.data-path",
+      "type": "java.lang.String",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ocr"
+    },
+    {
+      "name": "app.ocr.enabled",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ocr"
+    },
+    {
+      "name": "app.ocr.language",
+      "type": "java.lang.String",
+      "sourceType": "com.example.airecruitment.config.AppProperties$Ocr"
+    }
+  ],
+  "hints": []
+}

@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-recruitment-system
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ai_recruitment
+    username: postgres
+    password: 3526581402LZW
+  flyway:
+    enabled: true
+
+app:
+  ai:
+    dash-scope-api-key: sk-33905ee396d54dd5a084a9c461a0d2ad
+    chat-model: qwen-plus
+    embedding-model: text-embedding-v3
+    embedding-dimension: 1024
+  ocr:
+    enabled: false
+    language: chi_sim+eng
+    data-path: ${TESSDATA_PREFIX:}
