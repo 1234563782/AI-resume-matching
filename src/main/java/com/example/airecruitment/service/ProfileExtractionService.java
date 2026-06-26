@@ -18,8 +18,9 @@ public class ProfileExtractionService {
 
     public ResumeProfile extractResume(String resumeText) {
         String system = "你是招聘系统的信息抽取器，只输出合法 JSON，不要输出解释。";
-        String prompt = "从下面简历中抽取结构化信息，字段包含 name, phone, email, education, workExperience, skills, expectedSalaryMin, expectedSalaryMax, summary。"
-                + "education 数组字段为 school, degree, major, startDate, endDate。workExperience 数组字段为 company, title, startDate, endDate, skills, description。未知字段用 null 或空数组。简历：\n"
+        String prompt = "从下面简历中抽取结构化信息，字段包含 name, phone, email, education, workExperience, projectExperience, skills, expectedSalaryMin, expectedSalaryMax, summary。"
+                + "education 数组字段为 school, degree, major, startDate, endDate。workExperience 数组字段为 company, title, startDate, endDate, skills, description。"
+                + "projectExperience 数组字段为 name, role, startDate, endDate, skills, description；项目经历必须从简历的项目经历、个人项目、开源项目、课程设计等部分抽取，不要合并进 workExperience。未知字段用 null 或空数组。简历：\n"
                 + resumeText;
         return read(dashScopeClient.chatJson(system, prompt), ResumeProfile.class);
     }

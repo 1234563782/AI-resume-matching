@@ -75,6 +75,7 @@ public final class JdbcMapping {
                 profile.email(),
                 profile.education() == null ? List.of() : profile.education(),
                 profile.workExperience() == null ? List.of() : profile.workExperience(),
+                profile.projectExperience() == null ? List.of() : profile.projectExperience(),
                 profile.skills() == null ? List.of() : profile.skills(),
                 profile.expectedSalaryMin(),
                 profile.expectedSalaryMax(),

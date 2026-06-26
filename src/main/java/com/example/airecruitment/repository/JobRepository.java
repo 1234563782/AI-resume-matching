@@ -2,8 +2,10 @@ package com.example.airecruitment.repository;
 
 import com.example.airecruitment.dto.JobProfile;
 import com.example.airecruitment.dto.JobRecord;
+import com.example.airecruitment.dto.JobSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.PreparedStatement;
+import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -51,6 +53,24 @@ public class JobRepository {
                 "SELECT id, raw_text, profile_json::text, summary, embedding::text FROM job_description WHERE id = ?",
                 (rs, rowNum) -> JdbcMapping.mapJob(rs, objectMapper),
                 id
+        );
+    }
+
+    public List<JobSummary> findAllSummaries() {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, title, summary, salary_min, salary_max, created_at
+                        FROM job_description
+                        ORDER BY created_at DESC
+                        """,
+                (rs, rowNum) -> new JobSummary(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("summary"),
+                        rs.getObject("salary_min", Integer.class),
+                        rs.getObject("salary_max", Integer.class),
+                        rs.getTimestamp("created_at").toInstant()
+                )
         );
     }
 }

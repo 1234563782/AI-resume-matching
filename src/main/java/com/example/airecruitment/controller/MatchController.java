@@ -1,6 +1,7 @@
 package com.example.airecruitment.controller;
 
 import com.example.airecruitment.dto.MatchResult;
+import com.example.airecruitment.dto.RecommendationResult;
 import com.example.airecruitment.service.MatchApplicationService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +26,7 @@ public class MatchController {
     }
 
     @GetMapping("/jobs/{jobId}/recommendations")
-    public List<MatchResult> recommend(@PathVariable long jobId) {
-        return matchApplicationService.recommend(jobId);
+    public List<RecommendationResult> recommend(@PathVariable long jobId, @RequestParam(required = false) List<Long> resumeIds) {
+        return matchApplicationService.recommend(jobId, resumeIds);
     }
 }

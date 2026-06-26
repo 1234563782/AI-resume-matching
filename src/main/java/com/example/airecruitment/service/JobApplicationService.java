@@ -2,7 +2,9 @@ package com.example.airecruitment.service;
 
 import com.example.airecruitment.dto.CreateJobRequest;
 import com.example.airecruitment.dto.JobRecord;
+import com.example.airecruitment.dto.JobSummary;
 import com.example.airecruitment.repository.JobRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,5 +28,9 @@ public class JobApplicationService {
         String embeddingText = profile.summary() == null || profile.summary().isBlank() ? request.jdText() : profile.summary();
         double[] embedding = embeddingService.embedJob(embeddingText);
         return jobRepository.save(profile, request.title(), request.jdText(), embedding);
+    }
+
+    public List<JobSummary> listJobs() {
+        return jobRepository.findAllSummaries();
     }
 }

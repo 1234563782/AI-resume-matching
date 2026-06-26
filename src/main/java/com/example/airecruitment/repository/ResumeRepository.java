@@ -1,9 +1,12 @@
 package com.example.airecruitment.repository;
 
+import com.example.airecruitment.dto.OriginalResumeFile;
 import com.example.airecruitment.dto.ResumeProfile;
 import com.example.airecruitment.dto.ResumeRecord;
+import com.example.airecruitment.dto.ResumeSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -20,7 +23,15 @@ public class ResumeRepository {
         this.objectMapper = objectMapper;
     }
 
-    public ResumeRecord save(ResumeProfile profile, String rawText, double[] embedding) {
+    public ResumeRecord save(
+            ResumeProfile profile,
+            String rawText,
+            double[] embedding,
+            String originalFilename,
+            String originalContentType,
+            long originalFileSize,
+            byte[] originalFile
+    ) {
         try {
             ResumeProfile normalized = JdbcMapping.normalize(profile);
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -28,8 +39,9 @@ public class ResumeRepository {
             String summary = normalized.summary().isBlank() ? rawText.substring(0, Math.min(rawText.length(), 500)) : normalized.summary();
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement("""
-                        INSERT INTO resume(candidate_name, phone, email, expected_salary_min, expected_salary_max, raw_text, profile_json, summary, embedding)
-                        VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?::vector)
+                        INSERT INTO resume(candidate_name, phone, email, expected_salary_min, expected_salary_max, raw_text, profile_json, summary, embedding,
+                                           original_filename, original_content_type, original_file_size, original_file)
+                        VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?::vector, ?, ?, ?, ?)
                         """, new String[]{"id"});
                 ps.setString(1, normalized.name());
                 ps.setString(2, normalized.phone());
@@ -40,6 +52,10 @@ public class ResumeRepository {
                 ps.setString(7, json);
                 ps.setString(8, summary);
                 ps.setString(9, JdbcMapping.vectorLiteral(embedding));
+                ps.setString(10, originalFilename);
+                ps.setString(11, originalContentType);
+                ps.setLong(12, originalFileSize);
+                ps.setBytes(13, originalFile);
                 return ps;
             }, keyHolder);
             Long id = keyHolder.getKeyAs(Long.class);
@@ -62,5 +78,92 @@ public class ResumeRepository {
                 "SELECT id, raw_text, profile_json::text, summary, embedding::text FROM resume ORDER BY id DESC",
                 (rs, rowNum) -> JdbcMapping.mapResume(rs, objectMapper)
         );
+    }
+
+    public List<ResumeRecord> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = placeholders(ids.size());
+        return jdbcTemplate.query(
+                "SELECT id, raw_text, profile_json::text, summary, embedding::text FROM resume WHERE id IN (" + placeholders + ") ORDER BY id DESC",
+                (rs, rowNum) -> JdbcMapping.mapResume(rs, objectMapper),
+                ids.toArray()
+        );
+    }
+
+    public List<ResumeSummary> findSummaries() {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, candidate_name, email, phone, summary, original_filename, original_content_type, original_file_size, created_at
+                        FROM resume
+                        ORDER BY created_at DESC
+                        """,
+                (rs, rowNum) -> new ResumeSummary(
+                        rs.getLong("id"),
+                        rs.getString("candidate_name"),
+                        rs.getString("email"),
+                        rs.getString("phone"),
+                        rs.getString("summary"),
+                        rs.getString("original_filename"),
+                        rs.getString("original_content_type"),
+                        rs.getObject("original_file_size", Long.class),
+                        rs.getTimestamp("created_at").toInstant()
+                )
+        );
+    }
+
+    public List<ResumeSummary> findSummariesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = placeholders(ids.size());
+        return jdbcTemplate.query(
+                """
+                        SELECT id, candidate_name, email, phone, summary, original_filename, original_content_type, original_file_size, created_at
+                        FROM resume
+                        WHERE id IN (
+                        """ + placeholders + ")",
+                (rs, rowNum) -> new ResumeSummary(
+                        rs.getLong("id"),
+                        rs.getString("candidate_name"),
+                        rs.getString("email"),
+                        rs.getString("phone"),
+                        rs.getString("summary"),
+                        rs.getString("original_filename"),
+                        rs.getString("original_content_type"),
+                        rs.getObject("original_file_size", Long.class),
+                        rs.getTimestamp("created_at").toInstant()
+                ),
+                ids.toArray()
+        );
+    }
+
+    public OriginalResumeFile findOriginalFileById(long id) {
+        List<OriginalResumeFile> files = jdbcTemplate.query(
+                """
+                        SELECT original_filename, original_content_type, original_file
+                        FROM resume
+                        WHERE id = ? AND original_file IS NOT NULL
+                        """,
+                (rs, rowNum) -> new OriginalResumeFile(
+                        rs.getString("original_filename"),
+                        rs.getString("original_content_type"),
+                        rs.getBytes("original_file")
+                ),
+                id
+        );
+        if (files.isEmpty()) {
+            throw new IllegalArgumentException("这份简历没有保存原始文件，请重新上传后再打开");
+        }
+        return files.get(0);
+    }
+
+    private String placeholders(int size) {
+        List<String> placeholders = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            placeholders.add("?");
+        }
+        return String.join(",", placeholders);
     }
 }

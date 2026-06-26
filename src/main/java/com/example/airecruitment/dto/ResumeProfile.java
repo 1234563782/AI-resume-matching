@@ -8,6 +8,7 @@ public record ResumeProfile(
         String email,
         List<Education> education,
         List<WorkExperience> workExperience,
+        List<ProjectExperience> projectExperience,
         List<String> skills,
         Integer expectedSalaryMin,
         Integer expectedSalaryMax,

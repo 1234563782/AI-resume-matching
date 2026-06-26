@@ -2,8 +2,11 @@ package com.example.airecruitment.controller;
 
 import com.example.airecruitment.dto.CreateJobRequest;
 import com.example.airecruitment.dto.JobRecord;
+import com.example.airecruitment.dto.JobSummary;
 import com.example.airecruitment.service.JobApplicationService;
 import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +19,11 @@ public class JobController {
 
     public JobController(JobApplicationService jobApplicationService) {
         this.jobApplicationService = jobApplicationService;
+    }
+
+    @GetMapping
+    public List<JobSummary> list() {
+        return jobApplicationService.listJobs();
     }
 
     @PostMapping

@@ -13,7 +13,7 @@ body {
   color: #172033;
 }
 
-button, input, textarea {
+button, input, textarea, select {
   font: inherit;
 }
 
@@ -77,6 +77,47 @@ button {
   margin: 0 0 14px;
   font-size: 18px;
   font-weight: 800;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.link-button {
+  width: auto;
+  padding: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid #e6eaf0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.segmented button {
+  height: 34px;
+  border-radius: 6px;
+  background: transparent;
+  color: #475467;
+  font-weight: 800;
+}
+
+.segmented button.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 label {
@@ -150,6 +191,59 @@ label {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 12px;
+}
+
+.list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 8px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.list-actions div {
+  display: flex;
+  gap: 10px;
+}
+
+.resume-list {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #e6eaf0;
+  border-radius: 8px;
+}
+
+.resume-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin: 0;
+  padding: 10px;
+  border-bottom: 1px solid #e6eaf0;
+  cursor: pointer;
+}
+
+.resume-item:last-child {
+  border-bottom: 0;
+}
+
+.resume-item input {
+  margin-top: 3px;
+}
+
+.resume-item strong, td strong {
+  display: block;
+  color: #172033;
+}
+
+.resume-item small, td small {
+  display: block;
+  margin-top: 3px;
+  color: #667085;
+  line-height: 1.45;
 }
 
 .message {
@@ -236,6 +330,16 @@ tbody tr:hover, tbody tr.selected {
   color: #2563eb;
   font-size: 22px;
   font-weight: 900;
+}
+
+.table-button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #cfd7e3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 800;
 }
 
 .radar-box {
