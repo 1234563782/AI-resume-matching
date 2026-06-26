@@ -376,7 +376,7 @@
 
                 <div class="radar-box">
                     <h2 class="panel-title">匹配雷达图</h2>
-                    <div id="radarChart"></div>
+                    <div :key="radarKey" id="radarChart"></div>
                 </div>
             </div>
         </section>
@@ -398,6 +398,7 @@
                 uploadedResumeCount: 0,
                 results: [],
                 selectedResult: null,
+                radarKey: 0,
                 chart: null,
                 loading: {
                     job: false,
@@ -504,17 +505,21 @@
                 this.selectedResult = null;
                 this.messages.match = '';
                 if (this.chart) {
-                    this.chart.clear();
+                    this.chart.dispose();
+                    this.chart = null;
                 }
+                this.radarKey += 1;
             },
             drawRadar(result) {
                 const element = document.getElementById('radarChart');
                 if (!element || !result) {
                     return;
                 }
-                if (!this.chart) {
-                    this.chart = echarts.init(element);
+                if (this.chart) {
+                    this.chart.dispose();
                 }
+                this.chart = echarts.init(element);
+                const radar = result.radar || {};
                 this.chart.setOption({
                     tooltip: {},
                     radar: {
@@ -535,16 +540,17 @@
                         data: [{
                             name: `简历 #${result.resumeId}`,
                             value: [
-                                result.radar.skill,
-                                result.radar.experience,
-                                result.radar.education,
-                                result.radar.project,
-                                result.radar.salary,
-                                result.radar.semantic
+                                radar.skill || 0,
+                                radar.experience || 0,
+                                radar.education || 0,
+                                radar.project || 0,
+                                radar.salary || 0,
+                                radar.semantic || 0
                             ]
                         }]
                     }]
-                });
+                }, true);
+                requestAnimationFrame(() => this.chart && this.chart.resize());
             },
             resizeChart() {
                 if (this.chart) {
